@@ -9,6 +9,7 @@
 
 
 
+
 // Contents generation_config.hpp
 #pragma once
 
@@ -126,44 +127,20 @@ class Text2TextPipeline {
 public:
     virtual ~Text2TextPipeline() = default;
 
-    virtual GenerationConfig get_generation_config() = 0;
+    virtual GenerationConfig* get_generation_config() = 0;
     virtual void set_generation_config(const GenerationConfig& config) = 0;
     virtual GenerationResult generate(const std::string& templatedInput) = 0;
 
-    GenerationConfig config;
+    GenerationConfig* config;
 };
 
 } // namespace onnx::genai
 
 
-// ORT GenAI mods using common headers
-#include <string>
-#include <memory>
-
-using namespace onnx::genai;
 
 
-class OrtGenAIText2TextPipeline: public Text2TextPipeline {
-public:
-    OrtGenAIText2TextPipeline(const std::string& modelPath) : modelPath(modelPath) {
-    };
-
-    GenerationConfig get_generation_config() override {
-        return GenerationConfig();
-    };
-
-    // void set_generation_config(const GenerationConfig& config) override {
-    // };
-
-    GenerationResult generate(const std::string& tokens) override {
-        return GenerationResult();
-    };
 
 
-private:
-    const std::string modelPath;
-    GenerationConfig genConfig;
-};
 
 // End of changes
 
@@ -397,6 +374,8 @@ OGA_EXPORT OgaResult* OGA_API_CALL OgaRuntimeSettingsSetHandle(OgaRuntimeSetting
  * \return OgaResult containing the error message if the creation of the config failed.
  */
 OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateConfig(const char* config_path, OgaConfig** out);
+
+OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, onnx::genai::GenerationConfig** config);
 
 /**
  * \brief Clear the list of providers in the given config

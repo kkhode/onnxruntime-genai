@@ -1,11 +1,12 @@
-set "BUILD_FOLDER=C:\onnxruntime-genai-dev-tools\build_tools\BuildArtifacts-20250624_145252"
+echo "------------ Script initiatialization ------------"
+set BUILD_FOLDER=C:\onnxruntime-genai-dev-tools\build_tools\BuildArtifacts-20250624_145252
 set OVEP_INSTALL=%BUILD_FOLDER%\onnxruntime-install
 
-echo Building onnxruntime-genai ...
+echo "------------ Building onnxruntime-genai ------------"
+cd %BUILD_FOLDER%\onnxruntime-genai
 python build.py --config RelWithDebInfo --parallel --skip_tests --ort_home %OVEP_INSTALL% || exit /b 1
 
-echo Building onnxruntime-genai Phi3 C samples...
-cd %BUILD_FOLDER%\onnxruntime-genai
+echo "------------ Building onnxruntime-genai Phi3 C samples ------------"
 copy /y %OVEP_INSTALL%\include\* examples\c\include
 copy /y %OVEP_INSTALL%\lib\* examples\c\lib
 copy /y src\ort_genai.h examples\c\include\.

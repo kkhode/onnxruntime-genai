@@ -10,6 +10,9 @@
 #include <atomic>
 #include <functional>
 #include "common.h"
+#include <ortgenai_text2text_pipeline.hpp>
+
+using namespace onnx::genai;
 
 // C++ API Example
 
@@ -17,6 +20,11 @@ static TerminateSession catch_terminate;
 
 void signalHandlerWrapper(int signum) {
   catch_terminate.signalHandler(signum);
+}
+
+void genAIMain(const char* model_path) {
+  OrtGenAIText2TextPipeline pipe(model_path);
+  GenerationConfig* genConfig = pipe.get_generation_config();
 }
 
 void CXX_API(const char* model_path, const char* execution_provider) {
@@ -118,7 +126,8 @@ int main(int argc, char** argv) {
   std::cout << "-------------" << std::endl;
 
   std::cout << "C++ API" << std::endl;
-  CXX_API(model_path.c_str(), ep.c_str());
+  //CXX_API(model_path.c_str(), ep.c_str());
+  genAIMain(model_path.c_str());
 
   return 0;
 }
