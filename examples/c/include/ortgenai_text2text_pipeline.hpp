@@ -11,8 +11,8 @@ namespace ort::genai {
 class OrtGenAIText2TextPipeline : public Text2TextPipeline {
 public:
     OrtGenAIText2TextPipeline(const std::string& modelPath) : modelPath(modelPath) {
-        //OgaConfig::CreateGenerationConfig(modelPath.c_str());
-        auto model = OgaModel::Create(modelPath.c_str());
+        auto config = OgaConfig::CreateGenerationConfig(modelPath.c_str(), &genConfig);
+        auto model = OgaModel::Create(*config);
         auto params = OgaGeneratorParams::Create(*model);
         this->tokenizer = OgaTokenizer::Create(*model);
         this->tokenizer_stream = OgaTokenizerStream::Create(*tokenizer);

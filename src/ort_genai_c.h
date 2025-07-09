@@ -376,7 +376,7 @@ OGA_EXPORT OgaResult* OGA_API_CALL OgaRuntimeSettingsSetHandle(OgaRuntimeSetting
  */
 OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateConfig(const char* config_path, OgaConfig** out);
 
-OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, onnx::genai::GenerationConfig** gen_config, OgaConfig** oga_config);
+OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, OgaConfig** oga_config, onnx::genai::GenerationConfig** gen_config);
 
 /**
  * \brief Clear the list of providers in the given config

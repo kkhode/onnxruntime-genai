@@ -231,7 +231,7 @@ OgaResult* OGA_API_CALL OgaCreateConfig(const char* config_path, OgaConfig** out
   OGA_CATCH
 }
 
-OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, onnx::genai::GenerationConfig** gen_config, OgaConfig** oga_config) {
+OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, OgaConfig** oga_config, onnx::genai::GenerationConfig** gen_config) {
   OGA_TRY
   Generators::Config* internalConfig = std::make_unique<Generators::Config>(fs::path(config_path), std::string_view{}).get();
   (*gen_config)->config_path = internalConfig->config_path.string();
