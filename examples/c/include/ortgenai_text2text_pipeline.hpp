@@ -59,4 +59,8 @@ private:
     std::unique_ptr<OgaGenerator> generator;
 };
 
+std::shared_ptr<onnx::genai::Text2TextPipeline> create_text2text_pipeline(const std::string models_path) {
+  return std::make_shared<OrtGenAIText2TextPipeline>(models_path);
+}
+
 }  // namespace ort::genai

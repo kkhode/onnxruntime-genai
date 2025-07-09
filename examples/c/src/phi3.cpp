@@ -12,8 +12,7 @@ int main(int argc, char* argv[]) try {
     std::string prompt;
     std::string models_path = argv[1];
 
-    //auto text2text_pipeline = genai::create_text2text_pipeline(models_path);
-    genai::OrtGenAIText2TextPipeline* text2text_pipeline = new genai::OrtGenAIText2TextPipeline(models_path);
+    auto text2text_pipeline = genai::create_text2text_pipeline(models_path);
 
     auto generation_config = text2text_pipeline->get_generation_config();
     generation_config.sampling_config.do_sample = true;
