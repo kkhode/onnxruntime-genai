@@ -163,10 +163,10 @@ struct OgaConfig : OgaAbstract {
     return std::unique_ptr<OgaConfig>(p);
   }
 
-  static std::unique_ptr<onnx::genai::GenerationConfig> CreateGenerationConfig(const char* config_path) {
-    onnx::genai::GenerationConfig* config = new onnx::genai::GenerationConfig();
-    OgaCheckResult(OgaCreateGenerationConfig(config_path, &config));
-    return std::unique_ptr<onnx::genai::GenerationConfig>(config);
+  static std::unique_ptr<OgaConfig> CreateGenerationConfig(const char* config_path, onnx::genai::GenerationConfig** config) {
+    OgaConfig* p;
+    OgaCheckResult(OgaCreateGenerationConfig(config_path, config, &p));
+    return std::unique_ptr<OgaConfig>(p);
   }
 
   void ClearProviders() {

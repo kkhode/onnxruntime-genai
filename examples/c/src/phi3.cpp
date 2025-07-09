@@ -16,15 +16,15 @@ using namespace onnx::genai;
 
 // C++ API Example
 
-static TerminateSession catch_terminate;
-
-void signalHandlerWrapper(int signum) {
-  catch_terminate.signalHandler(signum);
-}
+//static TerminateSession catch_terminate;
+//
+//void signalHandlerWrapper(int signum) {
+//  catch_terminate.signalHandler(signum);
+//}
 
 void genAIMain(const char* model_path) {
   OrtGenAIText2TextPipeline pipe(model_path);
-  GenerationConfig* genConfig = pipe.get_generation_config();
+  pipe.generate("");
 }
 
 void CXX_API(const char* model_path, const char* execution_provider) {

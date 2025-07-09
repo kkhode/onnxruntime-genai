@@ -231,26 +231,28 @@ OgaResult* OGA_API_CALL OgaCreateConfig(const char* config_path, OgaConfig** out
   OGA_CATCH
 }
 
-OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, onnx::genai::GenerationConfig** config) {
+OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, onnx::genai::GenerationConfig** gen_config, OgaConfig** oga_config) {
   OGA_TRY
-  Generators::Config* out = std::make_unique<Generators::Config>(fs::path(config_path), std::string_view{}).get();
-  (*config)->max_length = out->search.max_length;
-  (*config)->min_new_tokens = out->search.min_length;
-  for (int tid: out->model.eos_token_id) {
-    (*config)->eos_token_ids.insert(tid);
+  Generators::Config* internalConfig = std::make_unique<Generators::Config>(fs::path(config_path), std::string_view{}).get();
+  (*gen_config)->config_path = internalConfig->config_path.string();
+  (*gen_config)->max_length = internalConfig->search.max_length;
+  (*gen_config)->min_new_tokens = internalConfig->search.min_length;
+  for (int tid: internalConfig->model.eos_token_id) {
+    (*gen_config)->eos_token_ids.insert(tid);
   }
-  (*config)->sampling_config.do_sample = out->search.do_sample;
-  (*config)->sampling_config.rng_seed = out->search.random_seed;
-  (*config)->sampling_config.temperature = out->search.temperature;
-  (*config)->sampling_config.top_k = out->search.top_k;
-  (*config)->sampling_config.top_p = out->search.top_p;
-  (*config)->sampling_config.repetition_penalty = out->search.repetition_penalty;
-  (*config)->beam_search_config.num_beams = out->search.num_beams;
-  (*config)->beam_search_config.diversity_penalty = out->search.diversity_penalty;
-  (*config)->beam_search_config.length_penalty = out->search.diversity_penalty;
-  (*config)->beam_search_config.num_return_sequences = out->search.num_return_sequences;
-  (*config)->beam_search_config.no_repeat_ngram_size = out->search.no_repeat_ngram_size;
-  (*config)->beam_search_config.stop_criteria = out->search.early_stopping? (*config)->beam_search_config.StopCriteria::EARLY : (*config)->beam_search_config.StopCriteria::NEVER;
+  (*gen_config)->sampling_config.do_sample = internalConfig->search.do_sample;
+  (*gen_config)->sampling_config.rng_seed = internalConfig->search.random_seed;
+  (*gen_config)->sampling_config.temperature = internalConfig->search.temperature;
+  (*gen_config)->sampling_config.top_k = internalConfig->search.top_k;
+  (*gen_config)->sampling_config.top_p = internalConfig->search.top_p;
+  (*gen_config)->sampling_config.repetition_penalty = internalConfig->search.repetition_penalty;
+  (*gen_config)->beam_search_config.num_beams = internalConfig->search.num_beams;
+  (*gen_config)->beam_search_config.diversity_penalty = internalConfig->search.diversity_penalty;
+  (*gen_config)->beam_search_config.length_penalty = internalConfig->search.diversity_penalty;
+  (*gen_config)->beam_search_config.num_return_sequences = internalConfig->search.num_return_sequences;
+  (*gen_config)->beam_search_config.no_repeat_ngram_size = internalConfig->search.no_repeat_ngram_size;
+  (*gen_config)->beam_search_config.stop_criteria = internalConfig->search.early_stopping ? (*gen_config)->beam_search_config.StopCriteria::EARLY : (*gen_config)->beam_search_config.StopCriteria::NEVER;
+  *oga_config = ReturnUnique<OgaConfig>(std::make_unique<Generators::Config>(fs::path(config_path), std::string_view{}));
   return nullptr;
   OGA_CATCH
  }

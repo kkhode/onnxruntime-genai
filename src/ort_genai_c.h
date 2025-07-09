@@ -20,6 +20,9 @@ namespace onnx::genai {
 
 struct GenerationConfig
 {
+    // Location where the config is stored on disk
+    std::string config_path;
+
     // The maximum length the generated tokens can have
     // (input_tokens + output_tokens)
     size_t max_length = SIZE_MAX;
@@ -375,7 +378,7 @@ OGA_EXPORT OgaResult* OGA_API_CALL OgaRuntimeSettingsSetHandle(OgaRuntimeSetting
  */
 OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateConfig(const char* config_path, OgaConfig** out);
 
-OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, onnx::genai::GenerationConfig** config);
+OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, onnx::genai::GenerationConfig** gen_config, OgaConfig** oga_config);
 
 /**
  * \brief Clear the list of providers in the given config
