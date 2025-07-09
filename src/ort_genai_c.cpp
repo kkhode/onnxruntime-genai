@@ -233,29 +233,18 @@ OgaResult* OGA_API_CALL OgaCreateConfig(const char* config_path, OgaConfig** out
 
 OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, OgaConfig** oga_config, onnx::genai::GenerationConfig** gen_config) {
   OGA_TRY
-  Generators::Config* internalConfig = std::make_unique<Generators::Config>(fs::path(config_path), std::string_view{}).get();
-  (*gen_config)->config_path = internalConfig->config_path.string();
-  (*gen_config)->max_length = internalConfig->search.max_length;
-  (*gen_config)->min_new_tokens = internalConfig->search.min_length;
-  for (int tid: internalConfig->model.eos_token_id) {
-    (*gen_config)->eos_token_ids.insert(tid);
-  }
-  (*gen_config)->sampling_config.do_sample = internalConfig->search.do_sample;
-  (*gen_config)->sampling_config.rng_seed = internalConfig->search.random_seed;
-  (*gen_config)->sampling_config.temperature = internalConfig->search.temperature;
-  (*gen_config)->sampling_config.top_k = internalConfig->search.top_k;
-  (*gen_config)->sampling_config.top_p = internalConfig->search.top_p;
-  (*gen_config)->sampling_config.repetition_penalty = internalConfig->search.repetition_penalty;
-  (*gen_config)->beam_search_config.num_beams = internalConfig->search.num_beams;
-  (*gen_config)->beam_search_config.diversity_penalty = internalConfig->search.diversity_penalty;
-  (*gen_config)->beam_search_config.length_penalty = internalConfig->search.diversity_penalty;
-  (*gen_config)->beam_search_config.num_return_sequences = internalConfig->search.num_return_sequences;
-  (*gen_config)->beam_search_config.no_repeat_ngram_size = internalConfig->search.no_repeat_ngram_size;
-  (*gen_config)->beam_search_config.stop_criteria = internalConfig->search.early_stopping ? (*gen_config)->beam_search_config.StopCriteria::EARLY : (*gen_config)->beam_search_config.StopCriteria::NEVER;
   *oga_config = ReturnUnique<OgaConfig>(std::make_unique<Generators::Config>(fs::path(config_path), std::string_view{}));
+  Generators::PushToGenerationConfig(**oga_config, **gen_config);
   return nullptr;
   OGA_CATCH
- }
+}
+
+OgaResult* OGA_API_CALL OgaPullFromGenerationConfig(OgaConfig* oga_config, onnx::genai::GenerationConfig gen_config) {
+  OGA_TRY
+  Generators::PullFromGenerationConfig(*oga_config, gen_config);
+  return nullptr;
+  OGA_CATCH
+}
 
 OgaResult* OGA_API_CALL OgaConfigClearProviders(OgaConfig* config) {
   OGA_TRY

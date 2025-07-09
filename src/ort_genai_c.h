@@ -378,6 +378,8 @@ OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateConfig(const char* config_path, OgaC
 
 OGA_EXPORT OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, OgaConfig** oga_config, onnx::genai::GenerationConfig** gen_config);
 
+OGA_EXPORT OgaResult* OGA_API_CALL OgaPullFromGenerationConfig(OgaConfig* oga_config, onnx::genai::GenerationConfig gen_config);
+
 /**
  * \brief Clear the list of providers in the given config
  * \param[in] config The config to clear the providers from.

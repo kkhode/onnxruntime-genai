@@ -12,6 +12,7 @@ class OrtGenAIText2TextPipeline : public Text2TextPipeline {
 public:
     OrtGenAIText2TextPipeline(const std::string& modelPath) : modelPath(modelPath) {
         auto config = OgaConfig::CreateGenerationConfig(modelPath.c_str(), &genConfig);
+        ogaConfig = config.get();
         auto model = OgaModel::Create(*config);
         auto params = OgaGeneratorParams::Create(*model);
         this->tokenizer = OgaTokenizer::Create(*model);
@@ -25,6 +26,7 @@ public:
 
     void set_generation_config(const GenerationConfig& config) override{
         this->genConfig = config;
+        ogaConfig->PullFromGenerationConfig(config);
     };
 
     GenerationResult operator()(const std::string& input) override {
@@ -51,6 +53,7 @@ public:
 private:
     const std::string modelPath;
     GenerationConfig genConfig;
+    OgaConfig* ogaConfig;
     std::unique_ptr<OgaTokenizer> tokenizer;
     std::unique_ptr<OgaTokenizerStream> tokenizer_stream;
     std::unique_ptr<OgaGenerator> generator;

@@ -169,6 +169,10 @@ struct OgaConfig : OgaAbstract {
     return std::unique_ptr<OgaConfig>(p);
   }
 
+  void PullFromGenerationConfig(onnx::genai::GenerationConfig config) {
+    OgaCheckResult(OgaPullFromGenerationConfig(this, config));
+  }
+
   void ClearProviders() {
     OgaCheckResult(OgaConfigClearProviders(this));
   }
