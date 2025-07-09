@@ -119,6 +119,7 @@ struct GenerationConfig
 } // namespace onnx::genai
 
 
+
 // Contents: text2text_pipeline.hpp
 namespace onnx::genai {
 
@@ -129,12 +130,9 @@ struct GenerationResult {
 class Text2TextPipeline {
 public:
     virtual ~Text2TextPipeline() = default;
-
-    virtual GenerationConfig* get_generation_config() = 0;
+    virtual GenerationConfig get_generation_config() = 0;
     virtual void set_generation_config(const GenerationConfig& config) = 0;
-    virtual GenerationResult generate(const std::string& templatedInput) = 0;
-
-    GenerationConfig* config;
+    virtual GenerationResult operator()(const std::string& input) = 0;
 };
 
 } // namespace onnx::genai
