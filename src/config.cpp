@@ -764,7 +764,6 @@ void SetSearchBool(Config::Search& search, std::string_view name, bool value) {
 }
 
 void PushToGenerationConfig(Config& config, onnx::genai::GenerationConfig gen_config) {
-  gen_config.config_path = config.config_path.string();
   gen_config.max_length = config.search.max_length;
   gen_config.min_new_tokens = config.search.min_length;
   for (int tid : config.model.eos_token_id) {
@@ -785,7 +784,6 @@ void PushToGenerationConfig(Config& config, onnx::genai::GenerationConfig gen_co
 }
 
 void PullFromGenerationConfig(Config& config, onnx::genai::GenerationConfig gen_config) {
-  //config.config_path.string() = gen_config.config_path;
   //config.search.max_length = gen_config.max_length;
   //config.search.min_length = gen_config.min_new_tokens;
   //for (int tid : gen_config.eos_token_ids) {

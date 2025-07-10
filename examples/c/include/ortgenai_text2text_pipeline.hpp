@@ -2,6 +2,7 @@
 #include <string>
 #include <memory>
 #include <ort_genai.h>
+#include "pipelines\text2text_pipeline.hpp"
 
 using namespace onnx::genai;
 
@@ -20,7 +21,7 @@ public:
         this->generator = OgaGenerator::Create(*model, *params);
     };
 
-    GenerationConfig get_generation_config() override {
+    GenerationConfig get_generation_config() const override {
         return this->genConfig;
     };
 
