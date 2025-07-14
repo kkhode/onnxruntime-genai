@@ -784,23 +784,23 @@ void PushToGenerationConfig(Config& config, onnx::genai::GenerationConfig gen_co
 }
 
 void PullFromGenerationConfig(Config& config, onnx::genai::GenerationConfig gen_config) {
-  //config.search.max_length = gen_config.max_length;
-  //config.search.min_length = gen_config.min_new_tokens;
-  //for (int tid : gen_config.eos_token_ids) {
-  //  config.model.eos_token_id.insert(tid);
-  //}
-  //config.search.do_sample = gen_config.sampling_config.do_sample;
-  //config.search.random_seed = gen_config.sampling_config.rng_seed;
-  //config.search.temperature = gen_config.sampling_config.temperature;
-  //config.search.top_k = gen_config.sampling_config.top_k;
-  //config.search.top_p = gen_config.sampling_config.top_p;
-  //config.search.repetition_penalty = gen_config.sampling_config.repetition_penalty;
-  //config.search.num_beams = gen_config.beam_search_config.num_beams;
-  //config.search.diversity_penalty = gen_config.beam_search_config.diversity_penalty;
-  //config.search.diversity_penalty = gen_config.beam_search_config.length_penalty;
-  //config.search.num_return_sequences = gen_config.beam_search_config.num_return_sequences;
-  //config.search.no_repeat_ngram_size = gen_config.beam_search_config.no_repeat_ngram_size;
-  //config.search.early_stopping = gen_config.beam_search_config.stop_criteria == gen_config.beam_search_config.StopCriteria::EARLY ? true: false;
+  config.search.max_length = static_cast<int>(gen_config.max_length);
+  config.search.min_length = static_cast<int>(gen_config.min_new_tokens);
+  for (int64_t tid : gen_config.eos_token_ids) {
+    config.model.eos_token_id.push_back(static_cast<int>(tid));
+  }
+  config.search.do_sample = gen_config.sampling_config.do_sample;
+  config.search.random_seed = static_cast<int>(gen_config.sampling_config.rng_seed);
+  config.search.temperature = gen_config.sampling_config.temperature;
+  config.search.top_k = static_cast<int>(gen_config.sampling_config.top_k);
+  config.search.top_p = gen_config.sampling_config.top_p;
+  config.search.repetition_penalty = gen_config.sampling_config.repetition_penalty;
+  config.search.num_beams = static_cast<int>(gen_config.beam_search_config.num_beams);
+  config.search.diversity_penalty = gen_config.beam_search_config.diversity_penalty;
+  config.search.diversity_penalty = gen_config.beam_search_config.length_penalty;
+  config.search.num_return_sequences = static_cast<int>(gen_config.beam_search_config.num_return_sequences);
+  config.search.no_repeat_ngram_size = static_cast<int>(gen_config.beam_search_config.no_repeat_ngram_size);
+  config.search.early_stopping = gen_config.beam_search_config.stop_criteria == gen_config.beam_search_config.StopCriteria::EARLY ? true: false;
 }
 
 void ClearProviders(Config& config) {
