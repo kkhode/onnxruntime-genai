@@ -3,6 +3,7 @@
 #include <memory>
 #include <ort_genai.h>
 #include "pipelines\text2text_pipeline.hpp"
+#include "pipelines\pipeline_factory.hpp"
 
 using namespace onnx::genai;
 
@@ -11,13 +12,13 @@ namespace ort::genai {
 
 class OrtGenAIText2TextPipeline : public Text2TextPipeline {
 public:
-    OrtGenAIText2TextPipeline(const std::string& modelPath) : modelPath(modelPath) {
-        auto config = OgaConfig::CreateGenerationConfig(modelPath.c_str(), &genConfig);
-        ogaConfig = config.get();
-        auto model = OgaModel::Create(*config);
+    OrtGenAIText2TextPipeline(const std::filesystem::path& models_path):
+    modelPath(models_path) {
+        this->ogaConfig = OgaConfig::CreateGenerationConfig(modelPath.string().c_str(), &genConfig);
+        auto model = OgaModel::Create(*(this->ogaConfig));
         auto params = OgaGeneratorParams::Create(*model);
         this->tokenizer = OgaTokenizer::Create(*model);
-        this->tokenizer_stream = OgaTokenizerStream::Create(*tokenizer);
+        this->tokenizerStream = OgaTokenizerStream::Create(*tokenizer);
         this->generator = OgaGenerator::Create(*model, *params);
     };
 
@@ -25,9 +26,37 @@ public:
         return this->genConfig;
     };
 
-    void set_generation_config(const GenerationConfig& config) override{
+    void set_generation_config(const GenerationConfig& config) override {
         this->genConfig = config;
-        ogaConfig->PullFromGenerationConfig(config);
+        (*this->ogaConfig).PullFromGenerationConfig(config);
+    };
+
+    std::map<std::string, std::any> get_device_config() const override {
+        return this->deviceConfig;
+    };
+
+    void set_device_config(std::map<std::string, std::any> device_config) override {
+        this->deviceConfig = device_config;
+        std::string provider;
+        std::map<std::string, const char*> providerOptions;
+        for (auto config: device_config) {
+            if (config.first == "ep") {
+                provider = std::any_cast<const char*>(config.second);
+            }
+            else {
+                providerOptions[config.first] = std::any_cast<const char*>(config.second);
+            }
+        }
+        if (provider == "follow_config") {
+            return;
+        }
+        else {
+            (*this->ogaConfig).ClearProviders();
+            (*this->ogaConfig).AppendProvider(provider.c_str());
+            for (auto option : providerOptions) {
+                (*this->ogaConfig).SetProviderOption(provider.c_str(), option.first.c_str(), option.second);
+            }
+        }
     };
 
     GenerationResult operator()(const std::string& input) override {
@@ -42,7 +71,7 @@ public:
                 generator->GenerateNextToken();
                 const auto num_tokens = generator->GetSequenceCount(0);
                 const auto new_token = generator->GetSequenceData(0)[num_tokens - 1];
-                result.text += tokenizer_stream->Decode(new_token);
+                result.text += tokenizerStream->Decode(new_token);
             }
         } catch (const std::exception& e) {
             std::cout << "Session Terminated: " << e.what() << std::endl;
@@ -52,16 +81,34 @@ public:
     };
 
 private:
-    const std::string modelPath;
+    const std::filesystem::path& modelPath;
     GenerationConfig genConfig;
-    OgaConfig* ogaConfig;
+    std::map<std::string, std::any> deviceConfig;
+
+    std::unique_ptr<OgaConfig> ogaConfig;
     std::unique_ptr<OgaTokenizer> tokenizer;
-    std::unique_ptr<OgaTokenizerStream> tokenizer_stream;
+    std::unique_ptr<OgaTokenizerStream> tokenizerStream;
     std::unique_ptr<OgaGenerator> generator;
 };
 
-std::shared_ptr<onnx::genai::Text2TextPipeline> create_text2text_pipeline(const std::string models_path) {
-  return std::make_shared<OrtGenAIText2TextPipeline>(models_path);
+}  // namespace ort::genai
+
+namespace {
+    struct Registrar {
+        Registrar() {
+            PipelineFactory::GetInstance().Register(
+                "onnxruntime_genai",
+                [](const std::filesystem::path& models_path) {
+                    return std::make_shared<ort::genai::OrtGenAIText2TextPipeline>(models_path);
+                }
+            );
+        }
+    };
+    static Registrar registrar;
 }
 
-}  // namespace ort::genai
+// This dummy function forces the linker to include this file,
+// ensuring the static Registrar object above is initialized.
+void link_onnxruntime_genai_backend() {
+  // This function can be empty.
+}
