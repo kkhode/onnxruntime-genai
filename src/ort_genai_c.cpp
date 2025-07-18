@@ -231,17 +231,16 @@ OgaResult* OGA_API_CALL OgaCreateConfig(const char* config_path, OgaConfig** out
   OGA_CATCH
 }
 
-OgaResult* OGA_API_CALL OgaCreateGenerationConfig(const char* config_path, OgaConfig** oga_config, onnx::genai::GenerationConfig** gen_config) {
+OgaResult* OGA_API_CALL OgaPullFromGenerationConfig(OgaConfig* oga_config, onnx::genai::GenerationConfig gen_config) {
   OGA_TRY
-  *oga_config = ReturnUnique<OgaConfig>(std::make_unique<Generators::Config>(fs::path(config_path), std::string_view{}));
-  Generators::PushToGenerationConfig(**oga_config, **gen_config);
+  Generators::PullFromGenerationConfig(*oga_config, gen_config);
   return nullptr;
   OGA_CATCH
 }
 
-OgaResult* OGA_API_CALL OgaPullFromGenerationConfig(OgaConfig* oga_config, onnx::genai::GenerationConfig gen_config) {
+OgaResult* OGA_API_CALL OgaPushToGenerationConfig(OgaConfig* oga_config, onnx::genai::GenerationConfig* gen_config) {
   OGA_TRY
-  Generators::PullFromGenerationConfig(*oga_config, gen_config);
+  Generators::PushToGenerationConfig(*oga_config, gen_config);
   return nullptr;
   OGA_CATCH
 }

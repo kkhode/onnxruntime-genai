@@ -14,7 +14,9 @@ class OrtGenAIText2TextPipeline : public Text2TextPipeline {
 public:
     OrtGenAIText2TextPipeline(const std::filesystem::path& models_path):
     modelPath(models_path) {
-        this->ogaConfig = OgaConfig::CreateGenerationConfig(modelPath.string().c_str(), &genConfig);
+        this->ogaConfig = OgaConfig::Create(modelPath.string().c_str());
+        (*this->ogaConfig).PushToGenerationConfig(&genConfig);
+
         auto model = OgaModel::Create(*(this->ogaConfig));
         auto params = OgaGeneratorParams::Create(*model);
         this->tokenizer = OgaTokenizer::Create(*model);
@@ -105,10 +107,4 @@ namespace {
         }
     };
     static Registrar registrar;
-}
-
-// This dummy function forces the linker to include this file,
-// ensuring the static Registrar object above is initialized.
-void link_onnxruntime_genai_backend() {
-  // This function can be empty.
 }

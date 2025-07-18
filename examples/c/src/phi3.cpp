@@ -37,10 +37,6 @@ int main(int argc, char* argv[]) try {
   std::string device = (argc == 4) ? argv[3] : "CONFIG";  // CPU, GPU, NPU can be used as well
   std::string prompt;
 
-  if (backend_name == "onnxruntime_genai") {
-    link_onnxruntime_genai_backend();
-  }
-
   // Create the pipeline using the backend name provided as an argument
   auto text2text_pipeline = PipelineFactory::GetInstance().Create(backend_name, models_path);
 
