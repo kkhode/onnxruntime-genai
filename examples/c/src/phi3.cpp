@@ -49,10 +49,11 @@ int main(int argc, char* argv[]) try {
   std::cout << "Question:\n";
   while (std::getline(std::cin, prompt)) {
     if (prompt == "exit") break;
-    auto results = (*text2text_pipeline)(prompt);
-    std::cout << results.text << std::endl;
+    GenerationInput input(prompt);
+    GenerationResult result = (*text2text_pipeline)(input);
+    std::cout << result.text << std::endl;
     std::cout << "\n----------\n"
-              << "question:\n";
+              << "Question:\n";
   }
 
 } catch (const std::exception& error) {

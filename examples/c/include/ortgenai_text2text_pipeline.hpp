@@ -10,24 +10,53 @@ using namespace onnx::genai::Text2Text;
 
 namespace ort::genai {
 
+class OrtGenAIText2TextGenerator : public Generator {
+public:
+    OrtGenAIText2TextGenerator(const std::unique_ptr<OgaModel>& model) {
+        tokenizer = OgaTokenizer::Create(*model);
+        tokenizerStream = OgaTokenizerStream::Create(*tokenizer);
+        generator = OgaGenerator::Create(*model, *OgaGeneratorParams::Create(*model));
+    }
+
+    void AppendInputTokens(const std::string& tokens) override {
+        const std::string prompt = "<|user|>\n" + tokens + "<|end|>\n<|assistant|>";
+        auto sequences = OgaSequences::Create();
+        tokenizer->Encode(prompt.c_str(), *sequences);
+        generator->AppendTokenSequences(*sequences);
+    }
+
+    std::string GenerateNextToken() const override {
+        generator->GenerateNextToken();
+        return tokenizerStream->Decode(generator->GetSequenceData(0)[generator->GetSequenceCount(0) - 1]);
+    };
+
+    bool IsDone() const override {
+        return generator->IsDone();
+    };
+
+private:
+    std::unique_ptr<OgaTokenizer> tokenizer;
+    std::unique_ptr<OgaTokenizerStream> tokenizerStream;
+    std::unique_ptr<OgaGenerator> generator;
+};
+
 class OrtGenAIText2TextPipeline : public Pipeline {
 public:
     OrtGenAIText2TextPipeline(const std::filesystem::path& models_path) {
-        this->ogaConfig = OgaConfig::Create(models_path.string().c_str());
-        auto model = OgaModel::Create(*(this->ogaConfig));
-        auto params = OgaGeneratorParams::Create(*model);
-        this->tokenizer = OgaTokenizer::Create(*model);
-        this->tokenizerStream = OgaTokenizerStream::Create(*tokenizer);
-        this->generator = OgaGenerator::Create(*model, *params);
+        ogaConfig = OgaConfig::Create(models_path.string().c_str());
+        ogaModel = OgaModel::Create(*ogaConfig);
+
+        // Populate genConfig and device once mechanism to bubble up config info to user plumbed in
+        generator = std::make_optional(OrtGenAIText2TextGenerator(ogaModel));
     };
 
     GenerationConfig get_generation_config() const override {
-        return this->genConfig;
+        return genConfig;
     };
 
     void set_generation_config(const GenerationConfig& config) override {
-        this->genConfig = config;
-        (*this->ogaConfig).Overlay(export_genconfig2json().c_str());
+        genConfig = config;
+        (*ogaConfig).Overlay(export_genconfig2json().c_str());
     };
 
     const std::vector<Device> get_supported_devices() const override {
@@ -44,7 +73,7 @@ public:
     }
 
     Device get_device() const override {
-        return this->device;
+        return device;
     };
 
     void set_device(const Device& device) override {
@@ -63,29 +92,24 @@ public:
             return;
         }
         else {
-            (*this->ogaConfig).ClearProviders();
-            (*this->ogaConfig).AppendProvider(provider.c_str());
+            (*ogaConfig).ClearProviders();
+            (*ogaConfig).AppendProvider(provider.c_str());
             for (auto option : providerOptions) {
-                (*this->ogaConfig).SetProviderOption(provider.c_str(), option.first.c_str(), option.second);
+                (*ogaConfig).SetProviderOption(provider.c_str(), option.first.c_str(), option.second);
             }
         }
     };
 
-    GenerationResult operator()(const std::string& input) override {
+    GenerationResult operator()(const GenerationInput& input) override {
         GenerationResult result;
-        auto sequences = OgaSequences::Create();
-        const std::string prompt = "<|user|>\n" + input + "<|end|>\n<|assistant|>";
-        tokenizer->Encode(prompt.c_str(), *sequences);
-        generator->AppendTokenSequences(*sequences);
 
+        (*generator).AppendInputTokens(input.text);
         try {
-            while (!generator->IsDone()) {
-                generator->GenerateNextToken();
-                const auto num_tokens = generator->GetSequenceCount(0);
-                const auto new_token = generator->GetSequenceData(0)[num_tokens - 1];
-                result.text += tokenizerStream->Decode(new_token);
+            while (!(*generator).IsDone()) {
+                result.text += (*generator).GenerateNextToken();
             }
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception& e) {
             std::cout << "Session Terminated: " << e.what() << std::endl;
         }
 
@@ -96,41 +120,40 @@ public:
 private:
     GenerationConfig genConfig;
     Device device;
+    std::optional<OrtGenAIText2TextGenerator> generator;
 
     std::unique_ptr<OgaConfig> ogaConfig;
-    std::unique_ptr<OgaTokenizer> tokenizer;
-    std::unique_ptr<OgaTokenizerStream> tokenizerStream;
-    std::unique_ptr<OgaGenerator> generator;
+    std::unique_ptr<OgaModel> ogaModel;
 
     std::string export_genconfig2json() {
         std::ostringstream oss;
-        oss << std::boolalpha << this->genConfig.sampling_config.do_sample;
+        oss << std::boolalpha << genConfig.sampling_config.do_sample;
         std::string doSample = oss.str();
         oss.str("");
         oss.clear();
-        oss << std::boolalpha << (this->genConfig.beam_search_config.stop_criteria == GenerationConfig::BeamSearchConfig::StopCriteria::EARLY ? true : false);
+        oss << std::boolalpha << (genConfig.beam_search_config.stop_criteria == GenerationConfig::BeamSearchConfig::StopCriteria::EARLY ? true : false);
         std::string stopCriteria = oss.str();
 
         std::string json = "{\n";
         json += "    \"search\": {\n";
-        json += "        \"max_length\": " + std::to_string(this->genConfig.max_length) + ",\n";
-        json += "        \"min_length\": " + std::to_string(this->genConfig.min_new_tokens) + ",\n";
+        json += "        \"max_length\": " + std::to_string(genConfig.max_length) + ",\n";
+        json += "        \"min_length\": " + std::to_string(genConfig.min_new_tokens) + ",\n";
         json += "        \"do_sample\": " + doSample + ",\n";
-        json += "        \"random_seed\": " + std::to_string(this->genConfig.sampling_config.rng_seed) + ",\n";
-        json += "        \"temperature\": " + std::to_string(this->genConfig.sampling_config.temperature) + ",\n";
-        json += "        \"top_k\": " + std::to_string(this->genConfig.sampling_config.top_k) + ",\n";
-        json += "        \"top_p\": " + std::to_string(this->genConfig.sampling_config.top_p) + ",\n";
-        json += "        \"repetition_penalty\": " + std::to_string(this->genConfig.sampling_config.repetition_penalty) + ",\n";
-        json += "        \"num_beams\": " + std::to_string(this->genConfig.beam_search_config.num_beams) + ",\n";
-        json += "        \"diversity_penalty\": " + std::to_string(this->genConfig.beam_search_config.diversity_penalty) + ",\n";
-        json += "        \"length_penalty\": " + std::to_string(this->genConfig.beam_search_config.length_penalty) + ",\n";
-        json += "        \"num_return_sequences\": " + std::to_string(this->genConfig.beam_search_config.num_return_sequences) + ",\n";
-        json += "        \"no_repeat_ngram_size\": " + std::to_string(this->genConfig.beam_search_config.no_repeat_ngram_size) + ",\n";
+        json += "        \"random_seed\": " + std::to_string(genConfig.sampling_config.rng_seed) + ",\n";
+        json += "        \"temperature\": " + std::to_string(genConfig.sampling_config.temperature) + ",\n";
+        json += "        \"top_k\": " + std::to_string(genConfig.sampling_config.top_k) + ",\n";
+        json += "        \"top_p\": " + std::to_string(genConfig.sampling_config.top_p) + ",\n";
+        json += "        \"repetition_penalty\": " + std::to_string(genConfig.sampling_config.repetition_penalty) + ",\n";
+        json += "        \"num_beams\": " + std::to_string(genConfig.beam_search_config.num_beams) + ",\n";
+        json += "        \"diversity_penalty\": " + std::to_string(genConfig.beam_search_config.diversity_penalty) + ",\n";
+        json += "        \"length_penalty\": " + std::to_string(genConfig.beam_search_config.length_penalty) + ",\n";
+        json += "        \"num_return_sequences\": " + std::to_string(genConfig.beam_search_config.num_return_sequences) + ",\n";
+        json += "        \"no_repeat_ngram_size\": " + std::to_string(genConfig.beam_search_config.no_repeat_ngram_size) + ",\n";
         json += "        \"early_stopping\": " + stopCriteria + "\n";
         json += "    },\n";
         json += "    \"model\": {\n";
         json += "        \"eos_token_id\": [";
-        for (int64_t tid : this->genConfig.eos_token_ids) {
+        for (int64_t tid : genConfig.eos_token_ids) {
         json += std::to_string(tid) + ",";
         }
         if (json.back() == ',') {
