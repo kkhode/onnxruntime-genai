@@ -1,21 +1,19 @@
 // ORT GenAI mods using common headers
 #include <string>
-#include <memory>
+
 #include <ort_genai.h>
 #include "pipelines\text2text_pipeline.hpp"
 #include "pipelines\pipeline_factory.hpp"
 
 using namespace onnx::genai;
-
+using namespace onnx::genai::Text2Text;
 
 namespace ort::genai {
 
-class OrtGenAIText2TextPipeline : public Text2TextPipeline {
+class OrtGenAIText2TextPipeline : public Pipeline {
 public:
-    OrtGenAIText2TextPipeline(const std::filesystem::path& models_path):
-    modelPath(models_path) {
-        this->ogaConfig = OgaConfig::Create(modelPath.string().c_str());
-
+    OrtGenAIText2TextPipeline(const std::filesystem::path& models_path) {
+        this->ogaConfig = OgaConfig::Create(models_path.string().c_str());
         auto model = OgaModel::Create(*(this->ogaConfig));
         auto params = OgaGeneratorParams::Create(*model);
         this->tokenizer = OgaTokenizer::Create(*model);
@@ -32,15 +30,28 @@ public:
         (*this->ogaConfig).Overlay(export_genconfig2json().c_str());
     };
 
-    std::map<std::string, std::any> get_device_config() const override {
-        return this->deviceConfig;
+    const std::vector<Device> get_supported_devices() const override {
+        std::vector<Device> devices(3);
+        devices[0].identifier = "CPU";
+        devices[0].config["ep"] = "CPU";
+        devices[1].identifier = "GPU";
+        devices[1].config["ep"] = "cuda";
+        devices[1].config["enable_cuda_graph"] = "0";
+        devices[2].identifier = "NPU";
+        devices[2].config["ep"] = "OpenVINO";
+        devices[2].config["device_type"] = "NPU";
+        return devices;
+    }
+
+    Device get_device() const override {
+        return this->device;
     };
 
-    void set_device_config(std::map<std::string, std::any> device_config) override {
-        this->deviceConfig = device_config;
+    void set_device(const Device& device) override {
+        this->device = device;
         std::string provider;
         std::map<std::string, const char*> providerOptions;
-        for (auto config: device_config) {
+        for (auto config: device.config) {
             if (config.first == "ep") {
                 provider = std::any_cast<const char*>(config.second);
             }
@@ -81,6 +92,16 @@ public:
         return result;
     };
 
+
+private:
+    GenerationConfig genConfig;
+    Device device;
+
+    std::unique_ptr<OgaConfig> ogaConfig;
+    std::unique_ptr<OgaTokenizer> tokenizer;
+    std::unique_ptr<OgaTokenizerStream> tokenizerStream;
+    std::unique_ptr<OgaGenerator> generator;
+
     std::string export_genconfig2json() {
         std::ostringstream oss;
         oss << std::boolalpha << this->genConfig.sampling_config.do_sample;
@@ -110,27 +131,16 @@ public:
         json += "    \"model\": {\n";
         json += "        \"eos_token_id\": [";
         for (int64_t tid : this->genConfig.eos_token_ids) {
-          json += std::to_string(tid) + ",";
+        json += std::to_string(tid) + ",";
         }
         if (json.back() == ',') {
-          json.pop_back();
+        json.pop_back();
         }
         json += "]\n";
         json += "    }\n";
         json += "}\n";
-        std::cout << json << std::endl;
         return json;
     }
-
-private:
-    const std::filesystem::path& modelPath;
-    GenerationConfig genConfig;
-    std::map<std::string, std::any> deviceConfig;
-
-    std::unique_ptr<OgaConfig> ogaConfig;
-    std::unique_ptr<OgaTokenizer> tokenizer;
-    std::unique_ptr<OgaTokenizerStream> tokenizerStream;
-    std::unique_ptr<OgaGenerator> generator;
 };
 
 }  // namespace ort::genai

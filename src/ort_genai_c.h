@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <string>
 #include <set>
-#include "pipelines\generation_config.hpp"
 
 #ifdef __cplusplus
 #include <cstddef>

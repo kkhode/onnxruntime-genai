@@ -7,26 +7,6 @@
 #include "ortgenai_text2text_pipeline.hpp"
 
 
-std::map<std::string, std::any> setOrtGenAIConfig(const std::string& device) {
-  std::map<std::string, std::any> device_config;
-  if (device == "CONFIG") {
-    device_config["ep"] = "follow_config";
-  }
-  else if (device == "CPU") {
-    device_config["ep"] = "CPU";
-  }
-  else if (device == "GPU") {
-    device_config["ep"] = "cuda";
-    device_config["enable_cuda_graph"] = "0";
-  }
-  else if (device == "NPU") {
-    device_config["ep"] = "OpenVINO";
-    device_config["device_type"] = "NPU";
-  }
-  return device_config;
-}
-
-
 int main(int argc, char* argv[]) try {
   if (argc < 3 || argc > 4) {
     throw std::runtime_error(std::string{"Usage: "} + argv[0] + " <BACKEND> <MODEL_DIR> [DEVICE]");
@@ -51,10 +31,22 @@ int main(int argc, char* argv[]) try {
   generation_config.sampling_config.rng_seed = 42;
   text2text_pipeline->set_generation_config(generation_config);
 
-  std::map<std::string, std::any> device_config = setOrtGenAIConfig(device);
-  text2text_pipeline->set_device_config(device_config);
+  const std::vector<onnx::genai::Device> supported_devices = text2text_pipeline->get_supported_devices();
+  std::optional<onnx::genai::Device> selected_device;
+  for (auto d: supported_devices) {
+    if (device == d.identifier) {
+        selected_device = d;
+    }
+  }
 
-  std::cout << "question:\n";
+  if (selected_device) {
+    text2text_pipeline->set_device(*selected_device);
+  }
+  else {
+    std::cout << "Selected device is not supported. Continuing with defaults." << std::endl;
+  }
+
+  std::cout << "Question:\n";
   while (std::getline(std::cin, prompt)) {
     if (prompt == "exit") break;
     auto results = (*text2text_pipeline)(prompt);
